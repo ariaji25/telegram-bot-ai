@@ -27,9 +27,18 @@ groq_client = Groq(api_key=groq_api_key)
 redis_host = os.getenv("REDIS_HOST", "localhost")
 redis_port = int(os.getenv("REDIS_PORT", 6379))
 redis_db = int(os.getenv("REDIS_DB", 0))
+redis_user = os.getenv("REDIS_USER") # New
+redis_password = os.getenv("REDIS_PASSWORD") # New
 
 try:
-    redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
+    redis_client = redis.StrictRedis(
+        host=redis_host,
+        port=redis_port,
+        db=redis_db,
+        username=redis_user if redis_user else None, # New
+        password=redis_password if redis_password else None, # New
+        decode_responses=True
+    )
     redis_client.ping()
     logger.info("Connected to Redis successfully!")
 except redis.exceptions.ConnectionError as e:
