@@ -6,6 +6,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from groq import Groq
 import redis
 import json
+import gspread
+from google.oauth2.service_account import Credentials
 
 # Load environment variables from .env file
 load_dotenv()
@@ -52,6 +54,26 @@ try:
 except redis.exceptions.ConnectionError as e:
     logger.error(f"Could not connect to Redis: {e}")
     redis_client = None
+
+# Initialize Google Sheets client
+google_credentials_file = os.getenv("GOOGLE_CREDENTIALS_FILE")
+google_sheet_name = os.getenv("GOOGLE_SHEET_NAME")
+gsheet_client = None
+
+if google_credentials_file and google_sheet_name:
+    try:
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        credentials = Credentials.from_service_account_file(
+            google_credentials_file, scopes=scopes
+        )
+        gsheet_client = gspread.authorize(credentials)
+        logger.info("Connected to Google Sheets successfully!")
+    except Exception as e:
+        logger.error(f"Could not connect to Google Sheets: {e}")
+        gsheet_client = None
 
 def get_chat_history(chat_id: int) -> list:
     if redis_client:
@@ -123,6 +145,47 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         logger.error(f"Error communicating with Groq API or Redis: {e}")
         await update.message.reply_text("Sorry, I'm having trouble connecting to the AI or saving chat history. Please try again later.")
 
+async def expense_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log an expense to Google Sheets."""
+    if not gsheet_client:
+        await update.message.reply_text(
+            "Google Sheets integration is not configured. Please check the logs for details."
+        )
+        return
+
+    try:
+        # Example: /expense <amount> <category> <description>
+        args = context.args
+        if len(args) < 3:
+            await update.message.reply_text(
+                "Usage: /expense <amount> <category> <description>"
+            )
+            return
+
+        amount = args[0]
+        category = args[1]
+        description = " ".join(args[2:])
+        
+        # Open the spreadsheet and select the first sheet
+        sheet = gsheet_client.open(google_sheet_name).sheet1
+        
+        # Append the expense as a new row
+        from datetime import datetime
+        row = [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), amount, category, description]
+        sheet.append_row(row)
+        
+        await update.message.reply_text("Expense logged successfully!")
+
+    except gspread.exceptions.SpreadsheetNotFound:
+        await update.message.reply_text(
+            f"Spreadsheet '{google_sheet_name}' not found. Please check the name and sharing settings."
+        )
+    except Exception as e:
+        logger.error(f"Error logging expense: {e}")
+        await update.message.reply_text(
+            "Sorry, there was an error logging your expense."
+        )
+
 
 def main():
     """Start the bot."""
@@ -138,6 +201,7 @@ def main():
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("clear", clear_command))
+    application.add_handler(CommandHandler("expense", expense_command))
 
     # On non-command messages - handle with Groq API
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

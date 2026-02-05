@@ -2,3 +2,5 @@ python-telegram-bot
 redis
 groq
 python-dotenv
+gspread
+google-auth-oauthlib
