@@ -24,7 +24,7 @@ if not groq_api_key:
 groq_client = Groq(api_key=groq_api_key)
 
 # Get Groq Model from environment variables
-groq_model = os.getenv("GROQ_MODEL", "llama3-8b-8192") # Default to llama3-8b-8192 if not set
+groq_model = os.getenv("GROQ_MODEL", "gemma-7b-it") # Default to gemma-7b-it if not set
 
 # Initialize Redis client
 redis_host = os.getenv("REDIS_HOST", "localhost")
