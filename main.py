@@ -23,6 +23,9 @@ if not groq_api_key:
     exit(1)
 groq_client = Groq(api_key=groq_api_key)
 
+# Get Groq Model from environment variables
+groq_model = os.getenv("GROQ_MODEL", "llama3-8b-8192") # Default to llama3-8b-8192 if not set
+
 # Initialize Redis client
 redis_host = os.getenv("REDIS_HOST", "localhost")
 redis_port = int(os.getenv("REDIS_PORT", 6379))
@@ -110,7 +113,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     try:
         chat_completion = groq_client.chat.completions.create(
             messages=groq_messages,
-            model="llama3-8b-8192",
+            model=groq_model, # Use the model from environment variable
         )
         ai_response = chat_completion.choices[0].message.content
         await update.message.reply_text(ai_response)
