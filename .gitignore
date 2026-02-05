@@ -1,0 +1,17 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak
+.env.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Docker
+.dockerignore
+docker-compose.override.yml

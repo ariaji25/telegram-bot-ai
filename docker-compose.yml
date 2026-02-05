@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - bot_network
+
+  bot:
+    build: .
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - bot_network
+
+volumes:
+  redis_data:
+
+networks:
+  bot_network:
+    driver: bridge
