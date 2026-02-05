@@ -27,18 +27,23 @@ groq_client = Groq(api_key=groq_api_key)
 redis_host = os.getenv("REDIS_HOST", "localhost")
 redis_port = int(os.getenv("REDIS_PORT", 6379))
 redis_db = int(os.getenv("REDIS_DB", 0))
-redis_user = os.getenv("REDIS_USER") # New
-redis_password = os.getenv("REDIS_PASSWORD") # New
+redis_user = os.getenv("REDIS_USER")
+redis_password = os.getenv("REDIS_PASSWORD")
+
+redis_config = {
+    'host': redis_host,
+    'port': redis_port,
+    'db': redis_db,
+    'decode_responses': True
+}
+
+if redis_user:
+    redis_config['username'] = redis_user
+if redis_password:
+    redis_config['password'] = redis_password
 
 try:
-    redis_client = redis.StrictRedis(
-        host=redis_host,
-        port=redis_port,
-        db=redis_db,
-        username=redis_user if redis_user else None, # New
-        password=redis_password if redis_password else None, # New
-        decode_responses=True
-    )
+    redis_client = redis.StrictRedis(**redis_config)
     redis_client.ping()
     logger.info("Connected to Redis successfully!")
 except redis.exceptions.ConnectionError as e:
@@ -83,6 +88,37 @@ async def clear_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await update.message.reply_text("Your chat history has been cleared.")
     else:
         await update.message.reply_text("Redis is not connected, so chat history cannot be cleared.")
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /help is issued."""
+    await update.message.reply_text("Available commands:\n/start - Start a new conversation\n/clear - Clear chat history\n/help - Show this help message")
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle incoming messages and respond using Groq API."""
+    user_message = update.message.text
+    chat_id = update.effective_chat.id
+    logger.info(f"User ({chat_id}): {user_message}")
+
+    add_to_chat_history(chat_id, "user", user_message)
+    chat_history = get_chat_history(chat_id)
+
+    # Convert chat history to Groq API message format
+    groq_messages = []
+    for msg in chat_history:
+        groq_messages.append({"role": msg["role"], "content": msg["content"]})
+    
+    try:
+        chat_completion = groq_client.chat.completions.create(
+            messages=groq_messages,
+            model="llama3-8b-8192",
+        )
+        ai_response = chat_completion.choices[0].message.content
+        await update.message.reply_text(ai_response)
+        add_to_chat_history(chat_id, "assistant", ai_response)
+        logger.info(f"AI ({chat_id}): {ai_response}")
+    except Exception as e:
+        logger.error(f"Error communicating with Groq API or Redis: {e}")
+        await update.message.reply_text("Sorry, I'm having trouble connecting to the AI or saving chat history. Please try again later.")
 
 
 def main():
