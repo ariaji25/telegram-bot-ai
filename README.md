@@ -22,7 +22,7 @@ To enable expense logging to Google Sheets, you need to configure Google Cloud c
 
 1.  **Go to Google Cloud Console**: Navigate to [console.cloud.google.com](https://console.cloud.google.com/).
 2.  **Create or Select a Project**: From the project dropdown at the top, select an existing project or create a new one.
-3.  **Enable Google Drive API and Google Sheets API**: 
+3.  **Enable Google Drive API and Google Sheets API**:
     *   In the console, go to "APIs & Services" > "Library".
     *   Search for "Google Drive API" and enable it.
     *   Search for "Google Sheets API" and enable it.
@@ -38,7 +38,7 @@ To enable expense logging to Google Sheets, you need to configure Google Cloud c
     *   Go to the "Keys" tab.
     *   Click "Add Key" > "Create new key".
     *   Select "JSON" as the key type and click "Create".
-    *   A JSON file containing your service account credentials will be downloaded. **Rename this file to `google_credentials.json` and place it in the root directory of this project.** **KEEP THIS FILE SECURE AND DO NOT COMMIT IT TO PUBLIC REPOSITORIES.**
+    *   A JSON file containing your service account credentials will be downloaded.
 
 ### 2. Share Your Google Sheet with the Service Account
 
@@ -46,20 +46,32 @@ To enable expense logging to Google Sheets, you need to configure Google Cloud c
 2.  **Share the Google Sheet**:
     *   Open your Google Sheet.
     *   Click the "Share" button.
-    *   In the "Share with people and groups" dialog, paste the service account's email address (found in the `client_email` field within your `google_credentials.json` file).
+    *   In the "Share with people and groups" dialog, paste the service account's email address (found in the `client_email` field within the downloaded JSON file).
     *   Grant it "Editor" permissions.
     *   Click "Share".
 
 ### 3. Configure `.env` for Google Sheets
 
-Add the following variables to your `.env` file:
+For easier setup in containerized environments, this project uses a Base64-encoded string for the Google credentials.
 
-```
-GOOGLE_SHEET_NAME=YourSpreadsheetName
-GOOGLE_CREDENTIALS_FILE=google_credentials.json
-```
-- Replace `YourSpreadsheetName` with the exact name of your Google Sheet.
-- `GOOGLE_CREDENTIALS_FILE` should point to the `google_credentials.json` file you placed in the project root.
+1.  **Encode your credentials file**:
+    From your terminal, run the following command on the downloaded JSON key file:
+    ```bash
+    # On macOS
+    base64 -i your-downloaded-credentials-file.json
+
+    # On Linux
+    base64 -w 0 your-downloaded-credentials-file.json
+    ```
+    This will output a long, single-line string. Copy this string.
+
+2.  **Add the following variables to your `.env` file**:
+    ```
+    GOOGLE_SHEET_NAME=YourSpreadsheetName
+    GOOGLE_CREDENTIALS_BASE64=YOUR_BASE64_ENCODED_CREDENTIALS
+    ```
+    - Replace `YourSpreadsheetName` with the exact name of your Google Sheet.
+    - Replace `YOUR_BASE64_ENCODED_CREDENTIALS` with the long string you copied in the previous step.
 
 ## Getting Started
 
@@ -89,13 +101,14 @@ These instructions will get you a copy of the project up and running on your loc
     ```
     TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
     GROQ_API_KEY=YOUR_GROQ_API_KEY
+    GROQ_MODEL=gemma-7b-it
     REDIS_HOST=redis
     REDIS_PORT=6379
     REDIS_DB=0
     REDIS_USER=
     REDIS_PASSWORD=
     GOOGLE_SHEET_NAME=YourSpreadsheetName
-    GOOGLE_CREDENTIALS_FILE=google_credentials.json
+    GOOGLE_CREDENTIALS_BASE64=YOUR_BASE64_ENCODED_CREDENTIALS
     ```
     -   `TELEGRAM_BOT_TOKEN`: Get this from BotFather on Telegram.
     -   `GROQ_API_KEY`: Get this from `https://console.groq.com/keys`.
@@ -103,7 +116,7 @@ These instructions will get you a copy of the project up and running on your loc
     -   `REDIS_HOST` should be set to `redis` to connect to the Redis container.
     -   `REDIS_USER` and `REDIS_PASSWORD` are optional, but if used, configure your Redis server accordingly.
     -   `GOOGLE_SHEET_NAME`: The exact name of your Google Sheet.
-    -   `GOOGLE_CREDENTIALS_FILE`: The path to your service account JSON file.
+    -   `GOOGLE_CREDENTIALS_BASE64`: Your Base64-encoded service account credentials.
 
 4.  **Build and run with Docker Compose:**
     ```bash

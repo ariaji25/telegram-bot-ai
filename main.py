@@ -56,18 +56,25 @@ except redis.exceptions.ConnectionError as e:
     redis_client = None
 
 # Initialize Google Sheets client
-google_credentials_file = os.getenv("GOOGLE_CREDENTIALS_FILE")
+google_credentials_base64 = os.getenv("GOOGLE_CREDENTIALS_BASE64")
 google_sheet_name = os.getenv("GOOGLE_SHEET_NAME")
 gsheet_client = None
 
-if google_credentials_file and google_sheet_name:
+if google_credentials_base64 and google_sheet_name:
     try:
+        import base64
+        import json
+
+        # Decode the base64 string to a JSON string
+        decoded_credentials = base64.b64decode(google_credentials_base64).decode("utf-8")
+        credentials_dict = json.loads(decoded_credentials)
+
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive",
         ]
-        credentials = Credentials.from_service_account_file(
-            google_credentials_file, scopes=scopes
+        credentials = Credentials.from_service_account_info(
+            credentials_dict, scopes=scopes
         )
         gsheet_client = gspread.authorize(credentials)
         logger.info("Connected to Google Sheets successfully!")

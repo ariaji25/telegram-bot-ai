@@ -7,9 +7,6 @@ ENV/
 env.bak
 .env.bak
 
-# Credentials
-google_credentials.json
-
 # Python
 __pycache__/
 *.py[cod]
